@@ -1,0 +1,54 @@
+services:
+  zipkin:
+    image: openzipkin/zipkin
+    restart: always
+    environment:
+      STORAGE_TYPE: mysql
+      MYSQL_DB: zipkin
+      MYSQL_USER: zipkin
+      MYSQL_PASS: zipkin
+      MYSQL_HOST: db
+      MYSQL_TCP_PORT: 3306
+      MYSQL_MAX_CONNECTIONS: 10
+      MYSQL_USE_SSL: false
+    ports:
+      - "9411:9411"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: zipkin
+      MYSQL_DATABASE: zipkin
+      MYSQL_USER: zipkin
+      MYSQL_PASSWORD: zipkin
+    ports:
+      - "33067:3306"
+    volumes:
+      - type: bind
+        source: ./zipkin-mysql-data
+        target: /var/lib/mysql
+        bind:
+          create_host_path: true
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- OPENTELEMETRY COLLECTOR ---
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: telemetry-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317" # Port OTLP gRPC (digunakan oleh Express.js SDK)
+      - "4318:4318" # Port OTLP HTTP (digunakan oleh React.js SDK / Browser)
+    depends_on:
+      - zipkin

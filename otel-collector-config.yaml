@@ -1,0 +1,43 @@
+receivers:
+  # Menerima telemetri dengan protokol OTLP standar (gRPC port 4317, HTTP port 4318)
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # 1. Mengelompokkan data secara massal untuk menghemat penggunaan CPU dan jaringan
+  batch:
+    timeout: 1s
+    send_batch_size: 256
+
+  # 2. Filter: Membuang trace rute tidak penting agar tidak memenuhi memori
+  filter/drop_unwanted:
+    error_mode: ignore
+    traces:
+      span:
+        - 'attributes["http.target"] == "/favicon.ico"'
+        - 'attributes["http.target"] == "/healthz"'
+
+  # 3. Transform: Menyamarkan (scrub) nilai password dalam atribut body request
+  transform/scrub_sensitive:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          # Mencari pola "password":"nilai" di dalam JSON string http.request.body dan menggantinya dengan [REDACTED]
+          - replace_pattern(attributes["http.request.body"], "password\":\"[^\"]+\"", "password\":\"[REDACTED]\"")
+
+exporters:
+  # Mengirim data yang sudah bersih ke Zipkin menggunakan Zipkin Exporter
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, filter/drop_unwanted, transform/scrub_sensitive]
+      exporters: [zipkin]
