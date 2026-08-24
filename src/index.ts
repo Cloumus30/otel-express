@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import userRoutes from "./routes/user.routes";
+import { trace } from "@opentelemetry/api";
 
 dotenv.config();
 
@@ -13,9 +14,54 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Inisialisasi OpenTelemetry Tracer untuk Payload
+const tracer = trace.getTracer("express-payload-tracer");
+
+// OpenTelemetry Middleware: Membuat Custom Span untuk Merekam Request & Response Body
+// app.use((req, res, next) => {
+//   tracer.startActiveSpan(`${req.method} ${req.path} [Payload]`, (span) => {
+//     span.setAttribute("http.method", req.method);
+//     span.setAttribute("http.url", req.originalUrl || req.url);
+
+//     // 1. Rekam Request Body saat request masuk
+//     if (req.body && Object.keys(req.body).length > 0) {
+//       span.setAttribute("http.request.body", JSON.stringify(req.body));
+//     }
+
+//     let isSpanEnded = false;
+//     const endSpan = () => {
+//       if (!isSpanEnded) {
+//         isSpanEnded = true;
+//         span.end();
+//       }
+//     };
+
+//     // 2. Intercept res.send untuk merekam Response Body & Status Code
+//     const originalSend = res.send;
+//     res.send = function (body) {
+//       span.setAttribute("http.response.status_code", res.statusCode);
+
+//       if (body) {
+//         const responseData =
+//           typeof body === "string" ? body : JSON.stringify(body);
+//         span.setAttribute("http.response.body", responseData);
+//       }
+
+//       endSpan();
+//       return originalSend.call(this, body);
+//     };
+
+//     // Fallback: pastikan span selalu ditutup jika response selesai
+//     res.on("finish", endSpan);
+//     res.on("close", endSpan);
+
+//     next();
+//   });
+// });
+
 // Health Check / Root route
 app.get("/", (_req: Request, res: Response) => {
-  res.json({
+  return res.json({
     success: true,
     message: "Express.js + Prisma User CRUD API is running",
   });
@@ -24,23 +70,9 @@ app.get("/", (_req: Request, res: Response) => {
 // Routes
 app.use("/api/users", userRoutes);
 
-app.get("/test-error", (req, res)=>{
-   try {
-    throw new Error('Database connection failed! (Simulasi Error OTel)');
-  } catch (error) {
-    // Kita juga bisa mendapatkan tracer aktif jika ingin merekam error secara kustom
-    const opentelemetry = require('@opentelemetry/api');
-    const activeSpan = opentelemetry.trace.getActiveSpan();
-    const err = error as Error;
-    if (activeSpan) {
-      activeSpan.recordException(err);
-      
-      activeSpan.setStatus({ code: opentelemetry.SpanStatusCode.ERROR, message: err.message });
-    }
-
-    res.status(500).json({ success: false, message: err.message });
-  }
-})
+app.get("/test-error", (req, res) => {
+  throw new Error("Database connection failed! (Simulasi Error OTel BARU)");
+});
 
 // 404 Handler
 app.use((_req: Request, res: Response) => {
@@ -52,7 +84,9 @@ app.use((_req: Request, res: Response) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT} [Hot Reload Active]`);
+  console.log(
+    `Server is running on http://localhost:${PORT} [Hot Reload Active]`,
+  );
 });
 
 export default app;

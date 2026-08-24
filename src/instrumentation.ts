@@ -1,32 +1,47 @@
+import { SpanStatusCode } from "@opentelemetry/api";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-grpc";
 import { ZipkinExporter } from "@opentelemetry/exporter-zipkin";
 import { NodeSDK } from "@opentelemetry/sdk-node";
+import dotenv from "dotenv";
 
-const traceExporter = new ZipkinExporter({
-    url: 'http://localhost:9411/api/v2/spans',
-    serviceName: "user-crud-service"
-})
+// const traceExporter = new ZipkinExporter({
+//   url: process.env.ZIPKIN_URL,
+//   serviceName: "user-crud-service",
+// });
+
+const traceExporter = new OTLPTraceExporter({
+  url: process.env.OTEL_COLLECTOR_URL || "http://localhost:4317",
+});
 
 const sdk = new NodeSDK({
-    serviceName: "user-crud-service",
-    traceExporter: traceExporter,
-    instrumentations: [
-        getNodeAutoInstrumentations({
-            '@opentelemetry/instrumentation-fs': { enabled: false },
-        })
-    ]
+  serviceName: "user-crud-service",
+  traceExporter: traceExporter,
+  instrumentations: [
+    getNodeAutoInstrumentations({
+      "@opentelemetry/instrumentation-fs": { enabled: false },
+      "@opentelemetry/instrumentation-http": {
+        requestHook: (span, request) => {
+          span.setAttribute("custom.request.url", request. || "");
+        },
+        responseHook: (span, response) => {
+          span.setAttribute("custom.response.status", response.statusCode || 0);
+        },
+      },
+    }),
+  ],
 });
 
 sdk.start();
 console.log("OpenTelemetry SDK Aktif dan mendengarkan");
 
 const shutDown = () => {
-    sdk.shutdown()
-        .then(() => console.log("Tracing diberhentikan secara bersih"))
-        .catch((err) => console.log("Tracer gagal menghentikan tracing:", err))
-        .finally(() => process.exit(0));
+  sdk
+    .shutdown()
+    .then(() => console.log("Tracing diberhentikan secara bersih"))
+    .catch((err) => console.log("Tracer gagal menghentikan tracing:", err))
+    .finally(() => process.exit(0));
 };
 
 process.on("SIGTERM", shutDown);
 process.on("SIGINT", shutDown);
-
