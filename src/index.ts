@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import userRoutes from "./routes/user.routes";
 import { trace } from "@opentelemetry/api";
+import { logger } from "./logger";
 
 dotenv.config();
 
@@ -13,6 +14,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Log Middleware untuk mencatat setiap request masuk
+app.use((req, res, next) => {
+  logger.info(`Request masuk: ${req.method} ${req.path}`, { path: req.path, method: req.method });
+  next();
+});
+
 
 // Inisialisasi OpenTelemetry Tracer untuk Payload
 const tracer = trace.getTracer("express-payload-tracer");

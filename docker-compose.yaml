@@ -1,43 +1,21 @@
-services:
-  zipkin:
-    image: openzipkin/zipkin
-    restart: always
-    environment:
-      STORAGE_TYPE: mysql
-      MYSQL_DB: zipkin
-      MYSQL_USER: zipkin
-      MYSQL_PASS: zipkin
-      MYSQL_HOST: db
-      MYSQL_TCP_PORT: 3306
-      MYSQL_MAX_CONNECTIONS: 10
-      MYSQL_USE_SSL: false
-    ports:
-      - "9411:9411"
-    depends_on:
-      db:
-        condition: service_healthy
+version: '3.8'
 
-  db:
-    image: mariadb:10.11
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: zipkin
-      MYSQL_DATABASE: zipkin
-      MYSQL_USER: zipkin
-      MYSQL_PASSWORD: zipkin
+services:
+  # --- OPENOBSERVE APM BACKEND ---
+  openobserve:
+    image: openobserve/openobserve:latest
+    container_name: openobserve
+    restart: unless-stopped
     ports:
-      - "33067:3306"
+      - "5080:5080" # Port Dashboard, Ingest API, & OTLP
+    environment:
+      - ZO_DATA_DIR=/data
+      - ZO_ROOT_USER_EMAIL=admin@example.com
+      - ZO_ROOT_USER_PASSWORD=ComplexPass#123
     volumes:
-      - type: bind
-        source: ./zipkin-mysql-data
-        target: /var/lib/mysql
-        bind:
-          create_host_path: true
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - openobserve-data:/data
+    networks:
+      - telemetry-net
 
   # --- OPENTELEMETRY COLLECTOR ---
   otel-collector:
@@ -48,7 +26,16 @@ services:
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports:
-      - "4317:4317" # Port OTLP gRPC (digunakan oleh Express.js SDK)
-      - "4318:4318" # Port OTLP HTTP (digunakan oleh React.js SDK / Browser)
+      - "4317:4317" # OTLP gRPC (Traces)
+      - "4318:4318" # OTLP HTTP (Logs)
     depends_on:
-      - zipkin
+      - openobserve
+    networks:
+      - telemetry-net
+
+volumes:
+  openobserve-data:
+
+networks:
+  telemetry-net:
+    driver: bridge

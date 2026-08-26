@@ -14,18 +14,22 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.79.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.221.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "^0.221.0",
     "@opentelemetry/exporter-zipkin": "^2.10.0",
+    "@opentelemetry/sdk-logs": "^0.221.0",
     "@opentelemetry/sdk-node": "^0.221.0",
-    "@libsql/client": "^0.14.0",
+    "@opentelemetry/winston-transport": "^0.31.0",
     "@prisma/adapter-libsql": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2"
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
