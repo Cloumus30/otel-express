@@ -2,8 +2,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import userRoutes from "./routes/user.routes";
-import { trace } from "@opentelemetry/api";
-import { logger } from "./logger";
+import { httpLogger } from "./middlewares/httpLogger.middleware";
 
 dotenv.config();
 
@@ -15,15 +14,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Log Middleware untuk mencatat setiap request masuk
-app.use((req, res, next) => {
-  logger.info(`Request masuk: ${req.method} ${req.path}`, { path: req.path, method: req.method });
-  next();
-});
-
-
-// Inisialisasi OpenTelemetry Tracer untuk Payload
-const tracer = trace.getTracer("express-payload-tracer");
+// Centralized HTTP Response Logger Middleware
+app.use(httpLogger);
 
 // OpenTelemetry Middleware: Membuat Custom Span untuk Merekam Request & Response Body
 // app.use((req, res, next) => {

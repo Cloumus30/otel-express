@@ -7,7 +7,6 @@ import { BatchLogRecordProcessor } from "@opentelemetry/sdk-logs";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import dotenv from "dotenv";
 
-
 // const traceExporter = new ZipkinExporter({
 //   url: process.env.ZIPKIN_URL,
 //   serviceName: "user-crud-service",
@@ -24,10 +23,11 @@ const logExporter = new OTLPLogExporter({
 const sdk = new NodeSDK({
   serviceName: "user-crud-service",
   traceExporter: traceExporter,
-  logRecordProcessor: new BatchLogRecordProcessor({exporter:logExporter}),
+  logRecordProcessor: new BatchLogRecordProcessor({ exporter: logExporter }),
   instrumentations: [
     getNodeAutoInstrumentations({
       "@opentelemetry/instrumentation-fs": { enabled: false },
+      "@opentelemetry/instrumentation-winston": { enabled: false },
       // "@opentelemetry/instrumentation-http": {
       //   requestHook: (span, request) => {
       //     span.setAttribute("custom.request.url", request.method || "");
