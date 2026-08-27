@@ -6,6 +6,11 @@ receivers:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+        cors:
+          # Izinkan aplikasi React Anda (ganti port sesuai setelan Vite/React Anda)
+          allowed_origins:
+            - http://localhost:5173
+            - http://localhost:3000
 
 processors:
   # 1. Mengelompokkan data secara massal untuk menghemat penggunaan CPU dan jaringan
