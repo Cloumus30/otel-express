@@ -54,7 +54,7 @@ const sanitizePayload = (data: any): any => {
 export const httpLogger = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const startTime = process.hrtime.bigint();
 
