@@ -3,4 +3,4 @@ dist
 .env
 *.db
 *.db-journal
-otel-collector.config.yaml
+otel-collector-config.yaml
