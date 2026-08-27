@@ -7,7 +7,7 @@ const uppercaseLevel = winston.format((info) => {
 });
 
 export const logger = winston.createLogger({
-  level: "INFO",
+  level: "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json(), // Format default JSON agar terstruktur

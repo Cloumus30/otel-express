@@ -1,8 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-
+import dotenv from "dotenv";
 import { createClient } from "@libsql/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
-
+dotenv.config();
 const rawUrl = process.env.DATABASE_URL || "file:./db/dev.db";
 const url = rawUrl.startsWith("file:") ? rawUrl : `file:${rawUrl}`;
 

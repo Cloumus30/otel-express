@@ -1,10 +1,25 @@
 import { SeverityNumber } from '@opentelemetry/api-logs';
+import { trace, context } from '@opentelemetry/api';
 import { frontendLogger } from '../instrumentation';
 
 export type LogAttributes = Record<string, any>;
 
 const MAX_STRING_LENGTH = 1000;
 const MAX_OBJECT_SERIALIZED_LENGTH = 1500;
+
+/**
+ * Mengambil trace_id dan span_id dari active span jika tersedia
+ */
+function getTraceContext(): LogAttributes {
+  const activeSpan = trace.getActiveSpan();
+  const spanContext = activeSpan?.spanContext();
+  if (!spanContext || !spanContext.traceId) return {};
+
+  return {
+    trace_id: spanContext.traceId,
+    span_id: spanContext.spanId,
+  };
+}
 
 /**
  * Mengambil metadata lingkungan browser otomatis untuk konteks log.
@@ -82,8 +97,10 @@ export const logger = {
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
+        ...getTraceContext(),
         ...attributes,
       }),
+      context: context.active(),
     });
   },
 
@@ -97,8 +114,10 @@ export const logger = {
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
+        ...getTraceContext(),
         ...attributes,
       }),
+      context: context.active(),
     });
   },
 
@@ -112,8 +131,10 @@ export const logger = {
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
+        ...getTraceContext(),
         ...attributes,
       }),
+      context: context.active(),
     });
   },
 
@@ -138,6 +159,7 @@ export const logger = {
 
     const mergedAttributes = {
       ...getBrowserContext(),
+      ...getTraceContext(),
       ...errorDetails,
       ...(isErrorInstance ? extraAttributes : errorOrAttributes),
     };
@@ -147,6 +169,7 @@ export const logger = {
       severityText: 'ERROR',
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes(mergedAttributes),
+      context: context.active(),
     });
   },
 };
