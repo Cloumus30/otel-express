@@ -1,6 +1,6 @@
-import { SeverityNumber } from '@opentelemetry/api-logs';
-import { trace, context } from '@opentelemetry/api';
-import { frontendLogger } from '../instrumentation';
+import { SeverityNumber } from "@opentelemetry/api-logs";
+import { trace, context } from "@opentelemetry/api";
+import { frontendLogger } from "../instrumentation";
 
 export type LogAttributes = Record<string, any>;
 
@@ -10,28 +10,29 @@ const MAX_OBJECT_SERIALIZED_LENGTH = 1500;
 /**
  * Mengambil trace_id dan span_id dari active span jika tersedia
  */
-function getTraceContext(): LogAttributes {
-  const activeSpan = trace.getActiveSpan();
-  const spanContext = activeSpan?.spanContext();
-  if (!spanContext || !spanContext.traceId) return {};
+// function getTraceContext(): LogAttributes {
+//   const activeSpan = trace.getActiveSpan();
+//   const spanContext = activeSpan?.spanContext();
+//   console.log(activeSpan, "SPAN FE");
+//   if (!spanContext || !spanContext.traceId) return {};
 
-  return {
-    trace_id: spanContext.traceId,
-    span_id: spanContext.spanId,
-  };
-}
+//   return {
+//     trace_id: spanContext.traceId,
+//     span_id: spanContext.spanId,
+//   };
+// }
 
 /**
  * Mengambil metadata lingkungan browser otomatis untuk konteks log.
  */
 function getBrowserContext(): LogAttributes {
-  if (typeof window === 'undefined') return {};
+  if (typeof window === "undefined") return {};
 
   return {
-    'browser.url': window.location.href,
-    'browser.pathname': window.location.pathname,
-    'browser.user_agent': window.navigator.userAgent,
-    'browser.language': window.navigator.language,
+    "browser.url": window.location.href,
+    "browser.pathname": window.location.pathname,
+    "browser.user_agent": window.navigator.userAgent,
+    "browser.language": window.navigator.language,
   };
 }
 
@@ -49,7 +50,9 @@ function truncateString(str: string, maxLength: number): string {
  * - Mencegah error circular references
  * - Membatasi ukuran payload (mencegah base64/blob besar memperlambat browser)
  */
-function normalizeAttributes(attributes?: LogAttributes): Record<string, string | number | boolean> {
+function normalizeAttributes(
+  attributes?: LogAttributes,
+): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
 
   if (!attributes) return result;
@@ -59,16 +62,16 @@ function normalizeAttributes(attributes?: LogAttributes): Record<string, string 
       continue;
     }
 
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       result[key] = truncateString(value, MAX_STRING_LENGTH);
-    } else if (typeof value === 'number' || typeof value === 'boolean') {
+    } else if (typeof value === "number" || typeof value === "boolean") {
       result[key] = value;
-    } else if (typeof value === 'object') {
+    } else if (typeof value === "object") {
       try {
         const jsonStr = JSON.stringify(value);
         result[key] = truncateString(jsonStr, MAX_OBJECT_SERIALIZED_LENGTH);
       } catch {
-        result[key] = '[Unserializable Object]';
+        result[key] = "[Unserializable Object]";
       }
     } else {
       result[key] = String(value);
@@ -93,11 +96,11 @@ export const logger = {
 
     frontendLogger.emit({
       severityNumber: SeverityNumber.DEBUG,
-      severityText: 'DEBUG',
+      severityText: "DEBUG",
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
-        ...getTraceContext(),
+        // ...getTraceContext(),
         ...attributes,
       }),
       context: context.active(),
@@ -110,11 +113,11 @@ export const logger = {
   info(message: string, attributes?: LogAttributes) {
     frontendLogger.emit({
       severityNumber: SeverityNumber.INFO,
-      severityText: 'INFO',
+      severityText: "INFO",
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
-        ...getTraceContext(),
+        // ...getTraceContext(),
         ...attributes,
       }),
       context: context.active(),
@@ -127,11 +130,11 @@ export const logger = {
   warn(message: string, attributes?: LogAttributes) {
     frontendLogger.emit({
       severityNumber: SeverityNumber.WARN,
-      severityText: 'WARN',
+      severityText: "WARN",
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes({
         ...getBrowserContext(),
-        ...getTraceContext(),
+        // ...getTraceContext(),
         ...attributes,
       }),
       context: context.active(),
@@ -144,29 +147,32 @@ export const logger = {
   error(
     message: string,
     errorOrAttributes?: Error | LogAttributes,
-    extraAttributes?: LogAttributes
+    extraAttributes?: LogAttributes,
   ) {
     const isErrorInstance = errorOrAttributes instanceof Error;
     const errorDetails: LogAttributes = {};
 
     if (isErrorInstance) {
-      errorDetails['error.name'] = errorOrAttributes.name;
-      errorDetails['error.message'] = errorOrAttributes.message;
+      errorDetails["error.name"] = errorOrAttributes.name;
+      errorDetails["error.message"] = errorOrAttributes.message;
       if (errorOrAttributes.stack) {
-        errorDetails['error.stack'] = truncateString(errorOrAttributes.stack, 2000);
+        errorDetails["error.stack"] = truncateString(
+          errorOrAttributes.stack,
+          2000,
+        );
       }
     }
 
     const mergedAttributes = {
       ...getBrowserContext(),
-      ...getTraceContext(),
+      // ...getTraceContext(),
       ...errorDetails,
       ...(isErrorInstance ? extraAttributes : errorOrAttributes),
     };
 
     frontendLogger.emit({
       severityNumber: SeverityNumber.ERROR,
-      severityText: 'ERROR',
+      severityText: "ERROR",
       body: truncateString(message, MAX_STRING_LENGTH),
       attributes: normalizeAttributes(mergedAttributes),
       context: context.active(),
@@ -175,20 +181,24 @@ export const logger = {
 };
 
 // Pasang Global Unhandled Exception & Promise Rejection Handlers
-if (typeof window !== 'undefined') {
-  window.addEventListener('error', (event) => {
-    logger.error('Unhandled Window Error', event.error || new Error(event.message), {
-      'error.filename': event.filename,
-      'error.lineno': event.lineno,
-      'error.colno': event.colno,
-      unhandled: true,
-    });
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    logger.error(
+      "Unhandled Window Error",
+      event.error || new Error(event.message),
+      {
+        "error.filename": event.filename,
+        "error.lineno": event.lineno,
+        "error.colno": event.colno,
+        unhandled: true,
+      },
+    );
   });
 
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener("unhandledrejection", (event) => {
     const reason = event.reason;
     const err = reason instanceof Error ? reason : new Error(String(reason));
-    logger.error('Unhandled Promise Rejection', err, {
+    logger.error("Unhandled Promise Rejection", err, {
       unhandled: true,
     });
   });
