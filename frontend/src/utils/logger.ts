@@ -1,5 +1,5 @@
 import { SeverityNumber } from "@opentelemetry/api-logs";
-import { trace, context } from "@opentelemetry/api";
+import { context } from "@opentelemetry/api";
 import { frontendLogger } from "../instrumentation";
 
 export type LogAttributes = Record<string, any>;
